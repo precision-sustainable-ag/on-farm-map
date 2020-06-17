@@ -58,21 +58,21 @@ server <- function(input, output, session) {
   
 
   all_sites <- sites$result %>% 
-    select(code, year, state, longitude, latitude, producer_id) %>% 
+    select(code, year, affiliation, longitude, latitude, producer_id) %>% 
     filter(!is.na(latitude)) %>% 
     collect() %>% 
     mutate(
-      state = replace(state, state == "PA", "MD"),
-      state = replace(state, state == "SC", "NC")
+      affiliation = replace(affiliation, affiliation == "PA", "MD"),
+      affiliation = replace(affiliation, affiliation == "SC", "NC")
       ) %>% 
     distinct(code, .keep_all = TRUE)
   
   
-  output$states <- renderUI({
+  output$affiliations <- renderUI({
     checkboxGroupInput(
-      "states", "Show teams:", inline = F,
-      choices = sort(unique(all_sites$state)),
-      selected = sort(unique(all_sites$state))
+      "affiliations", "Show teams:", inline = F,
+      choices = sort(unique(all_sites$affiliation)),
+      selected = sort(unique(all_sites$affiliation))
     )
   })  
   
@@ -86,7 +86,7 @@ server <- function(input, output, session) {
   
 
   
-  
+  sites
   ico <- reactive({awesomeIcons(icon = "unchecked", markerColor = input$col)})
   
   mobj <- reactive({
@@ -95,7 +95,11 @@ server <- function(input, output, session) {
     leaflet(options = leafletOptions(attributionControl = F)) %>% 
       addProviderTiles(input$prov) %>% 
       addAwesomeMarkers(
-        data = all_sites %>% filter(state %in% input$states, year %in% input$yrs),
+        data = all_sites %>% 
+          filter(
+            affiliation %in% input$affiliations, 
+            year %in% input$yrs
+          ),
         lat = ~latitude, lng = ~longitude, icon = ico(),
         options = markerOptions(opacity = 0.75)
         )

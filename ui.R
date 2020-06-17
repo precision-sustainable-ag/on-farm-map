@@ -11,7 +11,7 @@ ui <- fluidPage(
         ),
       column(
         6, 
-        uiOutput("states"), br(),
+        uiOutput("affiliations"), br(),
         uiOutput("yrs"), br()
         )
       ),
