@@ -19,14 +19,14 @@ server <- function(input, output, session) {
   choices <- c(
     "OpenStreetMap", "OpenStreetMap.BlackAndWhite", "OpenStreetMap.France",
     "OpenStreetMap.HOT", "Stamen.TonerLite", "Stamen.Terrain", 
-    "Esri", "Esri.WorldTopoMap", "CartoDB", "HikeBike", "Wikimedia"
+    "Esri", "Esri.WorldTopoMap", "CartoDB", "HikeBike"
   )
   
   
   output$prov <- renderUI({
     radioButtons(
       "prov", "Base map",
-      choices = choices, selected = "Wikimedia"
+      choices = choices, selected = "OpenStreetMap"
     )
   })
   
@@ -65,7 +65,11 @@ server <- function(input, output, session) {
       affiliation = replace(affiliation, affiliation == "PA", "MD"),
       affiliation = replace(affiliation, affiliation == "SC", "NC")
       ) %>% 
-    distinct(code, .keep_all = TRUE)
+    distinct(code, .keep_all = TRUE) %>% 
+    filter(
+      between(latitude, 24, 50),
+      between(longitude, -125, -65)
+    )
   
   
   output$affiliations <- renderUI({
