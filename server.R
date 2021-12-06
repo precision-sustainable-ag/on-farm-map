@@ -60,11 +60,8 @@ server <- function(input, output, session) {
   all_sites <- sites$result %>% 
     select(code, year, affiliation, longitude, latitude, producer_id) %>% 
     filter(!is.na(latitude)) %>% 
+    filter(is.na(protocols_enrolled)) %>% 
     collect() %>% 
-    mutate(
-      affiliation = replace(affiliation, affiliation == "PA", "MD"),
-      affiliation = replace(affiliation, affiliation == "SC", "NC")
-      ) %>% 
     distinct(code, .keep_all = TRUE) %>% 
     filter(
       between(latitude, 24, 50),
