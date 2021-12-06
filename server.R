@@ -58,7 +58,7 @@ server <- function(input, output, session) {
   
 
   all_sites <- sites$result %>% 
-    select(code, year, affiliation, longitude, latitude, producer_id) %>% 
+    select(code, year, affiliation, longitude, latitude, producer_id, protocols_enrolled) %>% 
     filter(!is.na(latitude)) %>% 
     filter(is.na(protocols_enrolled) | protocols_enrolled == "-999") %>% 
     collect() %>% 
