@@ -14,7 +14,7 @@ httr::set_config(httr::config(http_version = 0))
 source("secret.R")
 
 program_locations <- readr::read_csv("programs.csv")
-css_awesome_cols <- readr::read_csv("css_awesome_cols.csv")
+#css_awesome_cols <- readr::read_csv("css_awesome_cols.csv")
 
 
 server <- function(input, output, session) {
@@ -36,13 +36,17 @@ server <- function(input, output, session) {
   
   output$col <- renderUI({
     radioButtons(
-      "col", "Marker color",
+      "col", "Marker colors",
       choices = c(
-        'red', 'darkred', 'orange', 'green', 'darkgreen', 
-        'blue', 'purple', 'darkpurple', 'cadetblue'
-        )
+        RColorBrewer::brewer.pal.info %>% filter(category == "qual") %>% rownames()
+        ),
+      selected = "Set1"
     )
   })  
+  
+  cols <- reactive({
+    scales::brewer_pal(palette = input$col)(4)
+  })
   
   sites <- safely(tbl)(con, "site_information")
   
@@ -107,7 +111,10 @@ server <- function(input, output, session) {
     if (is.null(input$prov)) return(NULL)
     
     leaflet(options = leafletOptions(attributionControl = F)) %>% 
-      addProviderTiles(input$prov) %>% 
+      addProviderTiles(
+        input$prov,
+        options = providerTileOptions(opacity = 0.9)
+        ) %>% 
       addCircleMarkers(
         data = all_sites %>% 
           filter(
@@ -115,32 +122,32 @@ server <- function(input, output, session) {
             year %in% input$yrs
           ),
         lat = ~latitude, lng = ~longitude,
-        opacity = 0.75,
+        opacity = 1,
         radius = 7.5,
-        color = "#4daf4a"
+        color = cols()[1] #  "#4daf4a"
       ) %>% 
       addCircleMarkers(
         lat = ~latitude + 
           case_when(
             program == "Ed" ~ .15, 
             program == "CE1" ~ -.15, 
-            T~0
+            program == "CE2" ~ 0
             ), 
         lng = ~longitude + 
           case_when(
             program == "Ed" ~ -.15, 
             program == "CE1" ~ -.15, 
-            T~0.15
+            program == "CE2" ~ 0.15
           ), 
         radius = 15,
         fill = NA,
         color = ~case_when(
-          program == "Ed" ~ "#e41a1c",
-          program == "CE1" ~ "#377eb8", 
-          T ~ "#984ea3"
+          program == "Ed" ~ cols()[2],
+          program == "CE1" ~ cols()[3], 
+          program == "CE2" ~ cols()[4]
           ),
         data = program_locations,
-        opacity = .75
+        opacity = 1
       )
     
   })
