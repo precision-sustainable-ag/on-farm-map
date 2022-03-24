@@ -13,7 +13,7 @@ httr::set_config(httr::config(http_version = 0))
 
 source("secret.R")
 
-ce_locations <- readr::read_csv("common_experiments.csv")
+program_locations <- readr::read_csv("programs.csv")
 css_awesome_cols <- readr::read_csv("css_awesome_cols.csv")
 
 
@@ -91,7 +91,7 @@ server <- function(input, output, session) {
   
 
   
-  sites
+  #sites
   ico <- reactive({
     awesomeIcons(
       icon = "unchecked", 
@@ -108,22 +108,39 @@ server <- function(input, output, session) {
     
     leaflet(options = leafletOptions(attributionControl = F)) %>% 
       addProviderTiles(input$prov) %>% 
-      addAwesomeMarkers(
+      addCircleMarkers(
         data = all_sites %>% 
           filter(
             affiliation %in% input$affiliations, 
             year %in% input$yrs
           ),
-        lat = ~latitude, lng = ~longitude, icon = ico(),
-        options = markerOptions(opacity = 0.75)
-        ) %>% 
-      addCircleMarkers(
         lat = ~latitude, lng = ~longitude,
-        radius = ~ifelse(ce == "CE1", 10, 20),
+        opacity = 0.75,
+        radius = 7.5,
+        color = "#4daf4a"
+      ) %>% 
+      addCircleMarkers(
+        lat = ~latitude + 
+          case_when(
+            program == "Ed" ~ .15, 
+            program == "CE1" ~ -.15, 
+            T~0
+            ), 
+        lng = ~longitude + 
+          case_when(
+            program == "Ed" ~ -.15, 
+            program == "CE1" ~ -.15, 
+            T~0.15
+          ), 
+        radius = 15,
         fill = NA,
-        color = ~ifelse(ce == "CE1", "#03F", "#F30"),
-        data = ce_locations,
-        opacity = 1
+        color = ~case_when(
+          program == "Ed" ~ "#e41a1c",
+          program == "CE1" ~ "#377eb8", 
+          T ~ "#984ea3"
+          ),
+        data = program_locations,
+        opacity = .75
       )
     
   })

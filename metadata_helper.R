@@ -1,12 +1,16 @@
 library(dplyr)
-ce_states <- list(
+# https://docs.google.com/spreadsheets/d/1rp_KDgETOa8-F1dM3BzTc9JEt98OVYFDdFN_jprjmFU/edit#gid=854608412
+program_states <- list(
   CE1 = c("DE", "FL", "IL", "IN", "KS", "KY", "LA", "MD", 
           "NC", "NE", "NY", "PA", "SC", "VT", "WI"),
   CE2 = c("DE", "FL", "IL", "IA", "KS", "KY", "MD", 
-          "NC", "NE", "NY", "OH", "PA", "TX", "VT", "WI")
+          "NC", "NE", "NY", "OH", "PA", "TX", "VT", "WI"),
+  Ed =  c("KY", "MD", "MI", "NE", "NH", "NY", "SC")
 ) %>% 
-    tibble::enframe("ce", "state") %>% 
-    tidyr::unnest(state)
+  tibble::enframe("program", "state") %>% 
+  tidyr::unnest(state) #%>% 
+  #mutate(program = stringr::str_remove_all(program, "[0-9]")) %>% 
+  #distinct(program, state)
 
 univs_raw <- httr::GET(
   "https://raw.githubusercontent.com/gboeing/data-visualization/main/ncaa-football-stadiums/data/stadiums-geocoded.csv"
@@ -14,7 +18,7 @@ univs_raw <- httr::GET(
 
 univs_ll <- httr::content(univs_raw, as = "text") %>% 
   readr::read_csv() %>% 
-  filter(state %in% ce_states$state ) %>% # misses DE, VT, NY
+  filter(state %in% program_states$state ) %>% # misses DE, VT, NY, NH
   filter(
     team %in% c(
       "Florida",
@@ -25,6 +29,7 @@ univs_ll <- httr::content(univs_raw, as = "text") %>%
       "Kentucky",
       "LSU",
       "Maryland",
+      "Michigan State",
       "NC State",
       "Nebraska",
       "Ohio State",
@@ -36,10 +41,11 @@ univs_ll <- httr::content(univs_raw, as = "text") %>%
   )
 
 univs_addl <- tribble(
-  ~city,        ~state, ~team,      ~latitude,         ~longitude,
-  "Newark",     "DE",   "Delaware", 39.68591618717565, -75.7458982561899,
-  "Ithaca",     "NY",   "Cornell",  42.44572342548429, -76.4832318739652,
-  "Burlington", "VT",   "Vermont",  44.4783580236247, -73.19643151529881
+  ~city,        ~state, ~team,           ~latitude,         ~longitude,
+  "Newark",     "DE",   "Delaware",      39.68591618717565, -75.7458982561899,
+  "Durham",     "NH",   "New Hampshire", 43.13907326077061, -70.93483651750785,
+  "Ithaca",     "NY",   "Cornell",       42.44572342548429, -76.4832318739652,
+  "Burlington", "VT",   "Vermont",       44.4783580236247, -73.19643151529881
 )
 
 library(leaflet)
@@ -60,11 +66,11 @@ univs_ll %>%
 
 univs_ll %>%
   bind_rows(univs_addl) %>% 
-  full_join(ce_states) %>% 
+  full_join(program_states) %>% 
   ggplot() +
   borders("state") +
   geom_point(
-    aes(x = longitude, y = latitude, size = ce),
+    aes(x = longitude, y = latitude, size = program),
     shape = 1
   ) +
   coord_map()
@@ -72,25 +78,25 @@ univs_ll %>%
 
 univs_ll %>%
   bind_rows(univs_addl) %>% 
-  full_join(ce_states) %>% 
-  select(city, state, team, latitude, longitude, ce) %>% 
-  readr::write_csv("common_experiments.csv")
+  full_join(program_states) %>% 
+  select(city, state, team, latitude, longitude, program) %>% 
+  readr::write_csv("programs.csv")
 
-readr::read_csv("common_experiments.csv") %>% 
+readr::read_csv("programs.csv") %>% 
   leaflet() %>% 
   addProviderTiles("OpenStreetMap") %>% 
   addCircleMarkers(
-    radius = ~ifelse(ce == "CE1", 5, 15),
+    radius = ~ifelse(program == "CE1", 5, 15),
     fill = NA,
-    color = ~ifelse(ce == "CE1", "#03F", "#F30")
+    color = ~ifelse(program == "CE1", "#03F", "#F30")
     )
 
-readr::read_csv("common_experiments.csv") %>% 
+readr::read_csv("programs.csv") %>% 
   leaflet() %>% 
   addProviderTiles("OpenStreetMap") %>% 
   addAwesomeMarkers(
     icon = 
-      awesomeIcons(spin = ~ifelse(ce == "CE1", 0, 180))
+      awesomeIcons(spin = ~ifelse(program == "CE1", 0, 180))
       
   )
 
@@ -144,3 +150,7 @@ css_awesome_cols %>%
   tidyr::unnest(pal) %>% 
   pull(pal) %>% 
   scales::show_col(ncol = 9)
+
+
+# combine CE1 and 2 into single
+# add education
