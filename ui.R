@@ -3,7 +3,7 @@ library(shiny)
 ui <- fluidPage(
   column(
     3, 
-    titlePanel("CROWN Sitemap Generator"),
+    titlePanel("PSA Sitemap Generator"),
     uiOutput("prov"), br(), 
     fluidRow(
       column(

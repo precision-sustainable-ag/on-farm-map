@@ -13,6 +13,10 @@ httr::set_config(httr::config(http_version = 0))
 
 source("secret.R")
 
+ce_locations <- readr::read_csv("common_experiments.csv")
+css_awesome_cols <- readr::read_csv("css_awesome_cols.csv")
+
+
 server <- function(input, output, session) {
 
   
@@ -88,7 +92,16 @@ server <- function(input, output, session) {
 
   
   sites
-  ico <- reactive({awesomeIcons(icon = "unchecked", markerColor = input$col)})
+  ico <- reactive({
+    awesomeIcons(
+      icon = "unchecked", 
+      #squareMarker = T, 
+      iconColor = css_awesome_cols %>% 
+        filter(color == input$col) %>% 
+        pull(col),
+      markerColor = input$col
+      )
+    })
   
   mobj <- reactive({
     if (is.null(input$prov)) return(NULL)
@@ -103,7 +116,15 @@ server <- function(input, output, session) {
           ),
         lat = ~latitude, lng = ~longitude, icon = ico(),
         options = markerOptions(opacity = 0.75)
-        )
+        ) %>% 
+      addCircleMarkers(
+        lat = ~latitude, lng = ~longitude,
+        radius = ~ifelse(ce == "CE1", 10, 20),
+        fill = NA,
+        color = ~ifelse(ce == "CE1", "#03F", "#F30"),
+        data = ce_locations,
+        opacity = 1
+      )
     
   })
   
@@ -124,7 +145,11 @@ server <- function(input, output, session) {
   
   output$savebtn <- downloadHandler(
     filename = function() {
-      paste0("CROWN_map_", Sys.time(), ".png")
+      paste0(
+        "PSA_map_", 
+        format(Sys.time(), "%F %H%M%S"), 
+        ".png"
+        )
       },
     
     content = function(file) {
