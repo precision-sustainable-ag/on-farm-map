@@ -80,6 +80,7 @@ univs_ll %>%
   bind_rows(univs_addl) %>% 
   full_join(program_states) %>% 
   select(city, state, team, latitude, longitude, program) %>% 
+  # st_as_sf(coords = c("longitude", "latitude"), remove = F) %>% 
   readr::write_csv("programs.csv")
 
 readr::read_csv("programs.csv") %>% 
@@ -152,5 +153,108 @@ css_awesome_cols %>%
   scales::show_col(ncol = 9)
 
 
-# combine CE1 and 2 into single
-# add education
+# background mask and state outlines ----
+
+
+library(sf)
+
+download.file(
+  "https://rstudio.github.io/leaflet/json/us-states.geojson",
+  "us-states.geojson"
+)
+
+abb <- tibble(name = state.name, abb = state.abb)
+
+states <- sf::read_sf(
+  "https://rstudio.github.io/leaflet/json/us-states.geojson"
+) %>% 
+  left_join(abb)
+
+sf_use_s2(F)
+background_everything <- 
+  st_point(c(-85, 39)) %>% 
+  st_sfc() %>% 
+  st_set_crs('WGS84') %>% 
+  st_buffer(45) 
+
+
+
+st_difference(
+  background_everything, 
+  st_union(st_make_valid(states))
+  ) %>% 
+  write_sf("background_mask.geojson")
+
+background_mask <- read_sf("background_mask.geojson")
+background_mask %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addPolygons()
+  
+
+
+leaflet(background_everything) %>% 
+  addProviderTiles("OpenStreetMap") %>% 
+  addPolygons() %>% 
+  addPolygons(
+    data = states %>% 
+      filter(abb %in% c("NC", "MD"))
+    )
+
+
+leaflet() %>% 
+  addProviderTiles("OpenStreetMap") %>% 
+  addPolygons(
+    data = background_mask,
+    color = "#000000",
+    opacity = 0.1,
+    weight = 1,
+    fillOpacity = 0.15
+  ) %>% 
+  addPolygons(
+    data = states %>% 
+      filter(!(abb %in% program_locations$state)),
+    color = "#000000",
+    opacity = 0.0,
+    fillOpacity = 0.2
+  ) %>% 
+  addMarkers(data = program_locations) %>% 
+  fitBounds(
+    program_locations$longitude %>% min(),
+    program_locations$latitude %>% min(),
+    program_locations$longitude %>% max(),
+    program_locations$latitude %>% max()
+  )
+
+
+active_states <- st_filter(
+  states %>% filter(abb != "AK"), 
+  program_locations %>% 
+    filter(state %in% c("FL", "TX")) %>% 
+    st_as_sf(
+      coords = c("longitude", "latitude"), 
+      remove = F,
+      crs = 4326
+      ) %>% 
+    st_union(),
+  .predicate = function(x, y) !quietly(st_intersects)(x, y)[["result"]]
+  )
+ggplot(active_states) + geom_sf()
+
+program_locations %>% 
+  filter(state %in% c("FL", "TX")) %>% 
+  st_as_sf(
+    coords = c("longitude", "latitude"), 
+    remove = F,
+    crs = 4326
+  ) %>% 
+  bind_rows(
+    program_locations %>% 
+      filter(state %in% c("NY")) %>% 
+      st_as_sf(
+        coords = c("longitude", "latitude"), 
+        remove = F,
+        crs = 4326
+      )
+  ) %>% 
+  st_bbox()
