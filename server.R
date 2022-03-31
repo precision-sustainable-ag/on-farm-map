@@ -168,6 +168,8 @@ server <- function(input, output, session) {
   
   mobj <- reactive({
     if (is.null(input$prov)) return(NULL)
+    
+    scl <- input$sz/1500
 
     mask_states <- st_filter(
       states, 
@@ -188,7 +190,7 @@ server <- function(input, output, session) {
         data = mask_world,
         color = "#000000",
         opacity = 0.1,
-        weight = 1,
+        weight = 1*scl,
         fillOpacity = input$world_mask
       ) %>% 
       addPolygons(
@@ -200,23 +202,23 @@ server <- function(input, output, session) {
       addCircleMarkers(
         data = some_sites(),
         opacity = 1,
-        radius = 7.5,
+        radius = 7.5*scl,
         color = unname(cols()["onfarm"])
       ) %>% 
       addCircleMarkers(
         lat = ~latitude + 
-          case_when(
+          scl*case_when(
             program == "Ed" ~ .15, 
             program == "CE1" ~ -.15, 
             program == "CE2" ~ 0
             ), 
         lng = ~longitude + 
-          case_when(
+          scl*case_when(
             program == "Ed" ~ -.15, 
             program == "CE1" ~ -.15, 
             program == "CE2" ~ 0.15
           ), 
-        radius = 15,
+        radius = 15*scl,
         fill = NA,
         color = ~case_when(
           program == "Ed" ~ unname(cols()["Ed"]),
@@ -229,7 +231,7 @@ server <- function(input, output, session) {
     
   })
   
-  output$map <- renderLeaflet({
+  mobj_bounded <- reactive({
     input$reset
     
     bounds <- 
@@ -241,16 +243,20 @@ server <- function(input, output, session) {
     
     mobj() %>% 
       fitBounds(
-        bounds[["xmin"]], bounds[["ymin"]], 
-        bounds[["xmax"]], bounds[["ymax"]]
+        bounds[["xmin"]]-0.5, bounds[["ymin"]]-0.5, 
+        bounds[["xmax"]]+0.5, bounds[["ymax"]]+0.5
       )
   })
+  
+  output$map <- renderLeaflet(
+    mobj_bounded()
+  )
 
   output$map_r <- renderUI({
     leafletOutput(
       "map", 
       width = min(input$sz, 2000), 
-      height = min(input$sz, 2000)
+      height = min(input$sz*0.7, 2000)
       )
   })
   
@@ -266,7 +272,10 @@ server <- function(input, output, session) {
       },
     
     content = function(file) {
-      mapshot(mobj(), file = file, vwidth = input$sz, vheight = input$sz)
+      mapshot(
+        mobj_bounded(), file = file, 
+        vwidth = input$sz, vheight = input$sz*0.7
+        )
     }
   )
   

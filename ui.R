@@ -80,7 +80,7 @@ ui <- fluidPage(
         )
       ),
     numericInput(
-      "sz", "Map size", 
+      "sz", "Map width", 
       1400, min = 100, max = 2000, 
       step = 50, width = '100%'
       ), 
