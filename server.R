@@ -15,6 +15,7 @@ httr::set_config(httr::config(http_version = 0))
 
 source("secret.R")
 
+
 program_locations <- readr::read_csv("programs.csv", show_col_types = F)
 mask_world <- read_sf("background_mask.geojson")
 
@@ -116,8 +117,8 @@ server <- function(input, output, session) {
   })
   
   some_programs <- reactive({
-    program_locations %>% 
-    filter(program %in% input$exps) %>% 
+    x <- program_locations %>% 
+      filter(program %in% input$exps) %>% 
       mutate(n = 1) %>% 
       tidyr::pivot_wider(
         names_from = "program",
@@ -129,6 +130,30 @@ server <- function(input, output, session) {
         remove = F,
         crs = 4326
       )
+    
+    if (input$shift %% 2 != 0) {
+      x <- x %>% 
+        full_join(
+          tribble(
+            ~state, ~lon_off, ~lat_off,
+            "MD",   3, -1,
+            "DE",   3, -1,
+            "VT",   0, 1.5,
+            "NH",   2, -2/3
+          ),
+          by = "state"
+        ) %>% 
+        mutate_all(
+          ~tidyr::replace_na(., 0)
+        ) %>% 
+        mutate(
+          longitude = longitude + lon_off,
+          latitude = latitude + lat_off
+        )
+    }
+    
+    x
+    
   })
   
   
@@ -197,6 +222,20 @@ server <- function(input, output, session) {
       )
       } 
 
+    if (nrow(some_programs()) & input$shift %% 2 != 0) {
+      m <- m %>% 
+        addFlows(
+          some_programs()$longitude - some_programs()$lon_off,
+          some_programs()$latitude - some_programs()$lat_off,
+          some_programs()$longitude,
+          some_programs()$latitude,
+          color = "#111111",
+          maxThickness = 2,
+          dir = 0,
+          opacity = 0.5
+        )
+    }
+    
     if (nrow(some_programs())) {
       m <- m %>% 
 

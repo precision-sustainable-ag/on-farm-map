@@ -94,9 +94,13 @@ ui <- fluidPage(
         ),
       column(
         6,
-        checkbox_projects, br(), 
-        uiOutput("affiliations"), br(),
-        uiOutput("yrs"), br(),
+        checkbox_projects,
+        uiOutput("affiliations"),
+        uiOutput("yrs"),
+        actionButton(
+          "shift",
+          "Shift NE points"
+        ), br(),
         radioButtons(
           "chart_type",
           label = NULL,
