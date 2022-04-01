@@ -181,7 +181,10 @@ background_everything <-
 
 st_difference(
   background_everything, 
-  st_union(st_make_valid(states))
+  states %>% 
+    filter(!(name %in% c("Puerto Rico", "Alaska"))) %>% 
+    st_make_valid() %>% 
+    st_union()
   ) %>% 
   write_sf("background_mask.geojson")
 
