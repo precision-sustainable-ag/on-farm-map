@@ -1,11 +1,10 @@
 library(shiny)
 
-rotate <- function(x, n = 1) {
-  if (n == 0) x else c(tail(x, -n), head(x, n))
-}
+
 
 tile_choices <- c(
-  "OpenStreetMap", "OpenStreetMap.BlackAndWhite", "OpenStreetMap.France",
+  "OpenStreetMap", # "OpenStreetMap.BlackAndWhite", 
+  "OpenStreetMap.France",
   "OpenStreetMap.HOT", "Stamen.TonerLite", "Stamen.Terrain", 
   "Esri", "Esri.WorldTopoMap", "CartoDB", "HikeBike"
 )
@@ -45,7 +44,7 @@ slider_outlines <- sliderInput(
   "state_outline", 
   label = "Outline active states", 
   min = 0, max = 1, 
-  value = 0.05, step = 0.05,
+  value = 0.10, step = 0.05,
   ticks = F
 )
 
@@ -65,7 +64,10 @@ marker_cols <- radioButtons(
   choices = c(
     RColorBrewer::brewer.pal.info %>% 
       filter(category == "qual") %>% 
-      rownames()
+      rownames() %>% 
+      stringr::str_subset("Pastel", negate = T) %>% 
+      stringr::str_subset("Accent", negate = T),
+    LETTERS[1:4]
   ),
   selected = "Set1"
 )
@@ -84,23 +86,36 @@ ui <- fluidPage(
         slider_world,
         slider_state,
         slider_outlines, br(),
-        marker_cols
+        marker_cols,
+        actionButton(
+          "shuffle",
+          "Shuffle colors"
+        )
         ),
       column(
         6,
         checkbox_projects, br(), 
         uiOutput("affiliations"), br(),
-        uiOutput("yrs"), br()
+        uiOutput("yrs"), br(),
+        radioButtons(
+          "chart_type",
+          label = NULL,
+          choices = c("Pie" = "pie", "Pacman" = "polar-area"),
+          inline = T,
+          selected = "pie"
+        ),
+        numericInput(
+          "sz", "Map width", 
+          1200, min = 100, max = 2000, 
+          step = 50, width = '100%'
+        ),
+        actionButton("reset", "Reset zoom", icon = icon("undo", class = "fa-xs")),
+        downloadButton(
+          "savebtn", 
+          span("Save map to image", br(), "(may take ~5 seconds)")
+          )
         )
       ),
-    numericInput(
-      "sz", "Map width", 
-      1400, min = 100, max = 2000, 
-      step = 50, width = '100%'
-      ), 
-    br(),
-    downloadButton("savebtn", "Save map to image (may take ~5 seconds)"),
-    actionButton("reset", "Reset zoom", icon = icon("undo", class = "fa-xs"))
     ),
   column(9, shinycssloaders::withSpinner(uiOutput("map_r"), type = 6))
 )

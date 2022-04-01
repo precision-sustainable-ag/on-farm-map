@@ -32,8 +32,20 @@ server <- function(input, output, session) {
 
   
   cols <- reactive({
-    scales::brewer_pal(palette = input$col)(length(input$exps)) %>% 
-      set_names(input$exps)
+    if (input$col %in% LETTERS[1:4]) {
+      x <- scales::viridis_pal(
+        option = input$col, begin = .1, end = 0.9
+        )(length(input$exps)) %>% 
+        stringr::str_remove("FF$")
+    } else {
+      x <- scales::brewer_pal(palette = input$col)(length(input$exps))
+    }
+
+    if (input$shuffle %% 2 != 0) {
+      x <- sample(x)
+    }
+    
+    set_names(x, input$exps)
   })
 
   
@@ -190,13 +202,14 @@ server <- function(input, output, session) {
 
       addMinicharts(
         some_programs()$longitude, some_programs()$latitude,
-        type = "pie", # "polar-area",
+        type = input$chart_type,
         chartdata = some_programs() %>% 
           select(any_of(input$exps)) %>% 
           st_drop_geometry(), 
         colorPalette = unname(cols()[names(cols()) != "onfarm"]),
         fillColor = unname(cols()[names(cols()) != "onfarm"])[1],
-        legend = F
+        legend = F,
+        transitionTime = 250
       )    
       }      
 
