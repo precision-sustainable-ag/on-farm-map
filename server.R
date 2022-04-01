@@ -29,53 +29,13 @@ invert_names <- function(x) {
 
 server <- function(input, output, session) {
 
-  
-  # choices <- c(
-  #   "OpenStreetMap", "OpenStreetMap.BlackAndWhite", "OpenStreetMap.France",
-  #   "OpenStreetMap.HOT", "Stamen.TonerLite", "Stamen.Terrain", 
-  #   "Esri", "Esri.WorldTopoMap", "CartoDB", "HikeBike"
-  # )
-  # 
-  # 
-  # output$prov <- renderUI({
-  #   radioButtons(
-  #     "prov", "Base map",
-  #     choices = choices, selected = "OpenStreetMap"
-  #   )
-  # })
-  
-  # output$col <- renderUI({
-  #   radioButtons(
-  #     "col", "Marker colors",
-  #     choices = c(
-  #       RColorBrewer::brewer.pal.info %>% 
-  #         filter(category == "qual") %>% 
-  #         rownames()
-  #       ),
-  #     selected = "Set1"
-  #   )
-  # })  
+
   
   cols <- reactive({
     scales::brewer_pal(palette = input$col)(length(input$exps)) %>% 
       set_names(input$exps)
   })
-  
-  # sites <- safely(tbl)(con, "site_information")
-  # 
-  # if (is.null(sites$result)) {
-  #   con <- dbConnect(
-  #     Postgres(),
-  #     dbname = pg_dbname,
-  #     host = pg_host,
-  #     port = pg_port,
-  #     user = pg_user,
-  #     password = pg_password,
-  #     sslmode = "require"
-  #   )
-  #   
-  #   sites <- safely(tbl)(con, "site_information")
-  # }
+
   
   sites_res <- purrr::safely(RETRY)(
     "GET",
@@ -103,18 +63,7 @@ server <- function(input, output, session) {
       .groups = "drop"
       ) 
 
-  # all_sites <- sites$result %>% 
-  #   filter(affiliation != "DV") %>% 
-  #   select(code, year, affiliation, longitude, latitude, producer_id, protocols_enrolled) %>% 
-  #   filter(!is.na(latitude)) %>% 
-  #   filter(is.na(protocols_enrolled) | protocols_enrolled == "-999") %>% 
-  #   collect() %>% 
-  #   distinct(code, .keep_all = TRUE) %>% 
-  #   filter(
-  #     between(latitude, 24, 55),
-  #     between(longitude, -125, -65)
-  #   )
-  # 
+
   
   output$affiliations <- renderUI({
     selectInput(
@@ -137,17 +86,7 @@ server <- function(input, output, session) {
   
 
   
-  #sites
-  # ico <- reactive({
-  #   awesomeIcons(
-  #     icon = "unchecked", 
-  #     #squareMarker = T, 
-  #     iconColor = css_awesome_cols %>% 
-  #       filter(color == input$col) %>% 
-  #       pull(col),
-  #     markerColor = input$col
-  #     )
-  #   })
+
   
   some_sites <- reactive({
     all_sites %>% 
@@ -245,29 +184,7 @@ server <- function(input, output, session) {
         color = unname(cols()["onfarm"])
       )
       } 
-      # addCircleMarkers(
-      #   lat = ~latitude + 
-      #     scl*case_when(
-      #       program == "Ed" ~ .15, 
-      #       program == "CE1" ~ -.15, 
-      #       program == "CE2" ~ 0
-      #       ), 
-      #   lng = ~longitude + 
-      #     scl*case_when(
-      #       program == "Ed" ~ -.15, 
-      #       program == "CE1" ~ -.15, 
-      #       program == "CE2" ~ 0.15
-      #     ), 
-      #   radius = 15*scl,
-      #   fill = NA,
-      #   color = ~case_when(
-      #     program == "Ed" ~ unname(cols()["Ed"]),
-      #     program == "CE1" ~ unname(cols()["CE1"]), 
-      #     program == "CE2" ~ unname(cols()["CE2"])
-      #     ),
-      #   data = some_programs(),
-      #   opacity = 1
-      # ) %>% 
+
     if (nrow(some_programs())) {
       m <- m %>% 
 
@@ -282,17 +199,7 @@ server <- function(input, output, session) {
         legend = F
       )    
       }      
-      # addMinicharts(
-      #   some_sites()$lon, some_sites()$lat,
-      #   type = "pie", 
-      #   width = 10*scl,
-      #   height = 10*scl,
-      #   chartdata = some_sites() %>% 
-      #     select(any_of(input$exps)) %>% 
-      #     st_drop_geometry(), 
-      #   fillColor = unname(cols()["onfarm"]),
-      #   opacity = 0.8
-      # ) %>% 
+
     if (length(input$exps)) {
       m <- m %>% 
         addLegend(
