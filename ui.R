@@ -1,5 +1,9 @@
 library(shiny)
 
+rotate <- function(x, n = 1) {
+  if (n == 0) x else c(tail(x, -n), head(x, n))
+}
+
 tile_choices <- c(
   "OpenStreetMap", "OpenStreetMap.BlackAndWhite", "OpenStreetMap.France",
   "OpenStreetMap.HOT", "Stamen.TonerLite", "Stamen.Terrain", 
@@ -15,7 +19,7 @@ radio_tiles <- radioButtons(
 
 slider_background <- sliderInput(
   "background", 
-  label = NULL, 
+  label = "Mute base tiles", 
   min = 0, max = 1, 
   value = 0.9, step = 0.05,
   ticks = F
@@ -23,7 +27,7 @@ slider_background <- sliderInput(
 
 slider_world <- sliderInput(
   "world_mask", 
-  label = NULL, 
+  label = "Mute background", 
   min = 0, max = 1, 
   value = 0.15, step = 0.05,
   ticks = F
@@ -31,9 +35,17 @@ slider_world <- sliderInput(
 
 slider_state <- sliderInput(
   "state_mask", 
-  label = NULL, 
+  label = "Mute inactive states", 
   min = 0, max = 1, 
   value = 0.2, step = 0.05,
+  ticks = F
+)
+
+slider_outlines <- sliderInput(
+  "state_outline", 
+  label = "Outline active states", 
+  min = 0, max = 1, 
+  value = 0.05, step = 0.05,
   ticks = F
 )
 
@@ -60,21 +72,23 @@ marker_cols <- radioButtons(
 
 
 ui <- fluidPage(
+  waiter::useWaiter(),
   column(
     3, 
     titlePanel("PSA Sitemap Generator"),
     fluidRow(
       column(
         6, 
-        radio_tiles,
+        radio_tiles, br(),
         slider_background,
         slider_world,
         slider_state,
-        marker_cols,
-        checkbox_projects
+        slider_outlines, br(),
+        marker_cols
         ),
       column(
-        6, 
+        6,
+        checkbox_projects, br(), 
         uiOutput("affiliations"), br(),
         uiOutput("yrs"), br()
         )
