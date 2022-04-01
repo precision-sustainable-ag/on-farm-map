@@ -1,4 +1,5 @@
 library(leaflet)
+library(leaflet.minicharts)
 library(mapview)
 library(purrr)
 library(dplyr)
@@ -19,25 +20,29 @@ mask_world <- read_sf("background_mask.geojson")
 
 abb <- tibble(name = state.name, abb = state.abb)
 states <- sf::read_sf("us-states.geojson") %>% 
-  left_join(abb) %>% 
-  filter(abb != "AK")
+  left_join(abb, by = "name") %>% 
+  filter(abb != "AK", name != "Puerto Rico")
+
+invert_names <- function(x) {
+  set_names(names(x), x)
+}
 
 server <- function(input, output, session) {
 
   
-  choices <- c(
-    "OpenStreetMap", "OpenStreetMap.BlackAndWhite", "OpenStreetMap.France",
-    "OpenStreetMap.HOT", "Stamen.TonerLite", "Stamen.Terrain", 
-    "Esri", "Esri.WorldTopoMap", "CartoDB", "HikeBike"
-  )
-  
-  
-  output$prov <- renderUI({
-    radioButtons(
-      "prov", "Base map",
-      choices = choices, selected = "OpenStreetMap"
-    )
-  })
+  # choices <- c(
+  #   "OpenStreetMap", "OpenStreetMap.BlackAndWhite", "OpenStreetMap.France",
+  #   "OpenStreetMap.HOT", "Stamen.TonerLite", "Stamen.Terrain", 
+  #   "Esri", "Esri.WorldTopoMap", "CartoDB", "HikeBike"
+  # )
+  # 
+  # 
+  # output$prov <- renderUI({
+  #   radioButtons(
+  #     "prov", "Base map",
+  #     choices = choices, selected = "OpenStreetMap"
+  #   )
+  # })
   
   # output$col <- renderUI({
   #   radioButtons(
@@ -85,7 +90,7 @@ server <- function(input, output, session) {
   
   all_sites <- content(sites_res$result, as = "text") %>% 
     jsonlite::fromJSON() %>% 
-    filter(affiliation != "DV") %>% 
+    filter(affiliation != "DV", affiliation != "DM") %>% 
     filter(
       !is.na(lat), !is.na(lon),
       lat != -999, lon != -999
@@ -94,7 +99,8 @@ server <- function(input, output, session) {
     group_by(code, year, affiliation) %>% 
     summarise(
       lat = mean(lat, na.rm = T), 
-      lon = mean(lon, na.rm = T)
+      lon = mean(lon, na.rm = T),
+      .groups = "drop"
       ) 
 
   # all_sites <- sites$result %>% 
@@ -111,18 +117,21 @@ server <- function(input, output, session) {
   # 
   
   output$affiliations <- renderUI({
-    checkboxGroupInput(
-      "affiliations", "Show teams:", inline = F,
+    selectInput(
+      "affiliations", 
+      "Show teams (backspace to remove, type to add)", 
       choices = sort(unique(all_sites$affiliation)),
-      selected = sort(unique(all_sites$affiliation))
+      selected = sort(unique(all_sites$affiliation)),
+      multiple = T
     )
   })  
   
   output$yrs <- renderUI({
-    checkboxGroupInput(
-      "yrs", "Show years:", inline = F,
+    selectInput(
+      "yrs", "Show years",
       choices = sort(unique(all_sites$year)),
-      selected = sort(unique(all_sites$year))
+      selected = sort(unique(all_sites$year)),
+      multiple = T
     )
   }) 
   
@@ -151,18 +160,24 @@ server <- function(input, output, session) {
       remove = F,
       crs = 4326
     ) %>% 
-    mutate(program = "onfarm") %>% 
+    mutate(program = "onfarm", onfarm = 1) %>% 
     filter(program %in% input$exps)
   })
   
   some_programs <- reactive({
     program_locations %>% 
     filter(program %in% input$exps) %>% 
-    st_as_sf(
-      coords = c("longitude", "latitude"), 
-      remove = F,
-      crs = 4326
-    )
+      mutate(n = 1) %>% 
+      tidyr::pivot_wider(
+        names_from = "program",
+        values_from = n
+      ) %>% 
+      mutate_all(~replace(., is.na(.), 0)) %>% 
+      st_as_sf(
+        coords = c("longitude", "latitude"), 
+        remove = F,
+        crs = 4326
+      )
   })
   
   
@@ -181,11 +196,31 @@ server <- function(input, output, session) {
         .predicate = function(x, y) !quietly(st_intersects)(x, y)[["result"]]
       )
     
-    leaflet(options = leafletOptions(attributionControl = F)) %>% 
+    outline_states <- st_filter(
+      states, 
+      bind_rows(some_sites(), some_programs()) %>% st_union(),
+      .predicate = function(x, y) quietly(st_intersects)(x, y)[["result"]]
+    )
+    
+
+    m <- leaflet(
+      options = leafletOptions(
+        attributionControl = F#,
+        # zoomDelta = 0.5,
+        # dragging = T
+        )
+      ) %>% 
       addProviderTiles(
         input$prov,
         options = providerTileOptions(opacity = input$background)
         ) %>% 
+      addPolygons(
+        data = outline_states,
+        color = "#111111",
+        opacity = input$state_outline,
+        fillOpacity = 0,
+        weight = 2
+      ) %>% 
       addPolygons(
         data = mask_world,
         color = "#000000",
@@ -198,37 +233,83 @@ server <- function(input, output, session) {
         color = "#000000",
         opacity = 0.0,
         fillOpacity = input$state_mask
-      ) %>% 
+      ) 
+    
+    if (nrow(some_sites())) {
+      m <- m %>% 
       addCircleMarkers(
         data = some_sites(),
         opacity = 1,
-        radius = 7.5*scl,
+        radius = 5*scl,
+        weight = 2*scl,
         color = unname(cols()["onfarm"])
-      ) %>% 
-      addCircleMarkers(
-        lat = ~latitude + 
-          scl*case_when(
-            program == "Ed" ~ .15, 
-            program == "CE1" ~ -.15, 
-            program == "CE2" ~ 0
-            ), 
-        lng = ~longitude + 
-          scl*case_when(
-            program == "Ed" ~ -.15, 
-            program == "CE1" ~ -.15, 
-            program == "CE2" ~ 0.15
-          ), 
-        radius = 15*scl,
-        fill = NA,
-        color = ~case_when(
-          program == "Ed" ~ unname(cols()["Ed"]),
-          program == "CE1" ~ unname(cols()["CE1"]), 
-          program == "CE2" ~ unname(cols()["CE2"])
-          ),
-        data = some_programs(),
+      )
+      } 
+      # addCircleMarkers(
+      #   lat = ~latitude + 
+      #     scl*case_when(
+      #       program == "Ed" ~ .15, 
+      #       program == "CE1" ~ -.15, 
+      #       program == "CE2" ~ 0
+      #       ), 
+      #   lng = ~longitude + 
+      #     scl*case_when(
+      #       program == "Ed" ~ -.15, 
+      #       program == "CE1" ~ -.15, 
+      #       program == "CE2" ~ 0.15
+      #     ), 
+      #   radius = 15*scl,
+      #   fill = NA,
+      #   color = ~case_when(
+      #     program == "Ed" ~ unname(cols()["Ed"]),
+      #     program == "CE1" ~ unname(cols()["CE1"]), 
+      #     program == "CE2" ~ unname(cols()["CE2"])
+      #     ),
+      #   data = some_programs(),
+      #   opacity = 1
+      # ) %>% 
+    if (nrow(some_programs())) {
+      m <- m %>% 
+
+      addMinicharts(
+        some_programs()$longitude, some_programs()$latitude,
+        type = "pie", # "polar-area",
+        chartdata = some_programs() %>% 
+          select(any_of(input$exps)) %>% 
+          st_drop_geometry(), 
+        colorPalette = unname(cols()[names(cols()) != "onfarm"]),
+        fillColor = unname(cols()[names(cols()) != "onfarm"])[1],
+        legend = F
+      )    
+      }      
+      # addMinicharts(
+      #   some_sites()$lon, some_sites()$lat,
+      #   type = "pie", 
+      #   width = 10*scl,
+      #   height = 10*scl,
+      #   chartdata = some_sites() %>% 
+      #     select(any_of(input$exps)) %>% 
+      #     st_drop_geometry(), 
+      #   fillColor = unname(cols()["onfarm"]),
+      #   opacity = 0.8
+      # ) %>% 
+    if (length(input$exps)) {
+      m <- m %>% 
+        addLegend(
+        "bottomright",
+        colors = cols(),
+        labels = c(
+          "On-farm" = "onfarm",
+          "CE1" = "CE1",
+          "CE2" = "CE2",
+          "Education" = "Ed"
+        ) %>% invert_names() %>% .[input$exps],
         opacity = 1
-      ) 
+      )
+    }
     
+    m
+      
   })
   
   mobj_bounded <- reactive({
@@ -260,7 +341,10 @@ server <- function(input, output, session) {
       )
   })
   
-  if (is.null(suppressMessages(webshot:::find_phantom()))) { webshot::install_phantomjs() }
+  if (is.null(suppressMessages(webshot:::find_phantom()))) { 
+    webshot::install_phantomjs() 
+    }
+  
   
   output$savebtn <- downloadHandler(
     filename = function() {
@@ -272,10 +356,22 @@ server <- function(input, output, session) {
       },
     
     content = function(file) {
+
+      waiter::waiter_show(
+        html = div(
+          div(waiter::spin_rotating_plane()),
+          "Rendering...", style = "transform: scale(4, 4)"
+        ),
+        color = "#FFA50055"
+        )
+
+      on.exit( waiter::waiter_hide() )
+      
       mapshot(
         mobj_bounded(), file = file, 
         vwidth = input$sz, vheight = input$sz*0.7
         )
+
     }
   )
   
