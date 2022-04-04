@@ -49,31 +49,31 @@ univs_addl <- tribble(
 )
 
 library(leaflet)
-library(ggplot2)
-univs_ll %>%
-  bind_rows(univs_addl) %>% 
-  left_join(
-    as_tibble(state.center) %>% 
-      mutate(state = state.abb)
-  ) %>% 
-  ggplot() +
-  borders("state") +
-  geom_segment(
-    aes(x = longitude, y = latitude, xend = x, yend = y)
-  ) +
-  coord_map()
+# library(ggplot2)
+# univs_ll %>%
+#   bind_rows(univs_addl) %>% 
+#   left_join(
+#     as_tibble(state.center) %>% 
+#       mutate(state = state.abb)
+#   ) %>% 
+#   ggplot() +
+#   borders("state") +
+#   geom_segment(
+#     aes(x = longitude, y = latitude, xend = x, yend = y)
+#   ) +
+#   coord_map()
 
 
-univs_ll %>%
-  bind_rows(univs_addl) %>% 
-  full_join(program_states) %>% 
-  ggplot() +
-  borders("state") +
-  geom_point(
-    aes(x = longitude, y = latitude, size = program),
-    shape = 1
-  ) +
-  coord_map()
+# univs_ll %>%
+#   bind_rows(univs_addl) %>% 
+#   full_join(program_states) %>% 
+#   ggplot() +
+#   borders("state") +
+#   geom_point(
+#     aes(x = longitude, y = latitude, size = program),
+#     shape = 1
+#   ) +
+#   coord_map()
 
 
 univs_ll %>%
@@ -103,54 +103,54 @@ readr::read_csv("programs.csv") %>%
 
 
 
-library(magick)
-css_pos <- readr::read_lines(
-  "https://raw.githubusercontent.com/sigma-geosistemas/Leaflet.awesome-markers/master/dist/leaflet.awesome-markers.css"
-  ) %>% 
-  stringr::str_c(collapse = " ") %>% 
-  stringr::str_extract_all(
-    "\\.awesome-marker-icon-[a-z]+ \\{   background-position: [-0-9px]+ 0; \\}",
-    simplify = T
-    ) %>% 
-  stringr::str_extract_all("-[a-z]+ |[-0-9px]+ 0", simplify = T) %>% 
-  as_tibble() %>% 
-  mutate(
-    color = stringr::str_extract(V1, "[a-z]+"),
-    xpos = stringr::str_extract(V2, "^[-0-9]+") %>% as.numeric()
-  )
-
-css_awesome_cols <- css_pos %>% 
-  mutate(
-    col = purrr::map_chr(
-      xpos,
-      ~image_read("/Users/baits/Downloads/markers-soft.png") %>% 
-      image_crop(geometry = geometry_area(1, 1, -.x+18, 15)) %>% 
-      image_data() %>% 
-      paste(collapse = "")
-    ),
-    col = paste0("#", col)
-    ) 
-
-readr::write_csv(css_awesome_cols, "css_awesome_cols.csv")
-
-
-css_awesome_cols %>% 
-  mutate(
-    hcl = farver::decode_colour(col, to = "hcl"),
-    h = hcl[,1],
-    c = hcl[,2],
-    l = hcl[,3]
-    ) %>% 
-  mutate(
-    pal = purrr::pmap(
-      list(h,c,l),
-      ~scales::hue_pal(h = ..1 + c(0,360), c = ..2, l = ..3)(3)
-    )
-  ) %>% 
-  select(color, pal) %>% 
-  tidyr::unnest(pal) %>% 
-  pull(pal) %>% 
-  scales::show_col(ncol = 9)
+# library(magick)
+# css_pos <- readr::read_lines(
+#   "https://raw.githubusercontent.com/sigma-geosistemas/Leaflet.awesome-markers/master/dist/leaflet.awesome-markers.css"
+#   ) %>% 
+#   stringr::str_c(collapse = " ") %>% 
+#   stringr::str_extract_all(
+#     "\\.awesome-marker-icon-[a-z]+ \\{   background-position: [-0-9px]+ 0; \\}",
+#     simplify = T
+#     ) %>% 
+#   stringr::str_extract_all("-[a-z]+ |[-0-9px]+ 0", simplify = T) %>% 
+#   as_tibble() %>% 
+#   mutate(
+#     color = stringr::str_extract(V1, "[a-z]+"),
+#     xpos = stringr::str_extract(V2, "^[-0-9]+") %>% as.numeric()
+#   )
+# 
+# css_awesome_cols <- css_pos %>% 
+#   mutate(
+#     col = purrr::map_chr(
+#       xpos,
+#       ~image_read("/Users/baits/Downloads/markers-soft.png") %>% 
+#       image_crop(geometry = geometry_area(1, 1, -.x+18, 15)) %>% 
+#       image_data() %>% 
+#       paste(collapse = "")
+#     ),
+#     col = paste0("#", col)
+#     ) 
+# 
+# readr::write_csv(css_awesome_cols, "css_awesome_cols.csv")
+# 
+# 
+# css_awesome_cols %>% 
+#   mutate(
+#     hcl = farver::decode_colour(col, to = "hcl"),
+#     h = hcl[,1],
+#     c = hcl[,2],
+#     l = hcl[,3]
+#     ) %>% 
+#   mutate(
+#     pal = purrr::pmap(
+#       list(h,c,l),
+#       ~scales::hue_pal(h = ..1 + c(0,360), c = ..2, l = ..3)(3)
+#     )
+#   ) %>% 
+#   select(color, pal) %>% 
+#   tidyr::unnest(pal) %>% 
+#   pull(pal) %>% 
+#   scales::show_col(ncol = 9)
 
 
 # background mask and state outlines ----
@@ -243,7 +243,7 @@ active_states <- st_filter(
     st_union(),
   .predicate = function(x, y) !quietly(st_intersects)(x, y)[["result"]]
   )
-ggplot(active_states) + geom_sf()
+# ggplot(active_states) + geom_sf()
 
 program_locations %>% 
   filter(state %in% c("FL", "TX")) %>% 
