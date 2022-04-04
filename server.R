@@ -4,6 +4,7 @@ library(mapview)
 library(purrr)
 library(dplyr)
 library(httr)
+library(sf)
 
 
 
@@ -15,7 +16,7 @@ httr::set_config(httr::config(http_version = 0))
 
 source("secret.R")
 
-sf::sf_use_s2(F)
+sf_use_s2(F)
 
 program_locations <- readr::read_csv("programs.csv", show_col_types = F)
 mask_world <- read_sf("background_mask.geojson")
