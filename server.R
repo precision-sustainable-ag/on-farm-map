@@ -15,7 +15,7 @@ httr::set_config(httr::config(http_version = 0))
 
 source("secret.R")
 
-sf_use_s2(F)
+sf::sf_use_s2(F)
 
 program_locations <- readr::read_csv("programs.csv", show_col_types = F)
 mask_world <- read_sf("background_mask.geojson")
