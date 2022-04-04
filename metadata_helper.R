@@ -206,7 +206,8 @@ leaflet(background_everything) %>%
 
 
 leaflet() %>% 
-  addProviderTiles("OpenStreetMap") %>% 
+  addProviderTiles("Stamen.Watercolor") %>% 
+  addProviderTiles("Stamen.TerrainLabels") %>% 
   addPolygons(
     data = background_mask,
     color = "#000000",
@@ -262,3 +263,9 @@ program_locations %>%
   ) %>% 
   st_bbox()
 
+countries <- sf::read_sf(
+  "https://rstudio.github.io/leaflet/json/countries.geojson"
+)
+leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(data = countries)
