@@ -181,9 +181,9 @@ server <- function(input, output, session) {
 
     m <- leaflet(
       options = leafletOptions(
-        attributionControl = F#,
-        # zoomDelta = 0.5,
-        # dragging = T
+        #attributionControl = F,
+        zoomDelta = 0.125,
+        zoomSnap = 0.125
         )
       ) %>% 
       addProviderTiles(
@@ -274,17 +274,27 @@ server <- function(input, output, session) {
   mobj_bounded <- reactive({
     input$reset
     
-    bounds <- 
-      bind_rows(
+    # doesn't auto-adjust for the shifted NE points
+    # These objects are sf based on original latlong
+    # Would need to be recalculated for shift
+    point_cloud <- bind_rows(
         some_sites(), 
         some_programs()
-        ) %>% 
+        )
+    
+    shift_e <- input$shift %% 2 != 0
+    
+    bounds <- st_filter(
+      states, 
+      st_union(point_cloud),
+      .predicate = function(x, y) quietly(st_intersects)(x, y)[["result"]]
+    ) %>% 
       st_bbox()
     
     mobj() %>% 
       fitBounds(
         bounds[["xmin"]]-0.5, bounds[["ymin"]]-0.5, 
-        bounds[["xmax"]]+0.5, bounds[["ymax"]]+0.5
+        bounds[["xmax"]]+0.5*(2*shift_e+1), bounds[["ymax"]]+0.5
       )
   })
   
@@ -296,7 +306,7 @@ server <- function(input, output, session) {
     leafletOutput(
       "map", 
       width = min(input$sz, 2000), 
-      height = min(input$sz*0.7, 2000)
+      height = min(input$sz*input$ar, 2000)
       )
   })
   
@@ -327,8 +337,13 @@ server <- function(input, output, session) {
       on.exit( waiter::waiter_hide() )
       
       mapshot(
-        mobj_bounded(), file = file, 
-        vwidth = input$sz, vheight = input$sz*0.7
+        mobj_bounded() %>% 
+          fitBounds(
+            input$map_bounds[["west"]], input$map_bounds[["south"]], 
+            input$map_bounds[["east"]], input$map_bounds[["north"]]
+          ), 
+        file = file, 
+        vwidth = input$sz, vheight = input$sz*input$ar
         )
 
     }

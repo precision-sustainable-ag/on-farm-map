@@ -3,10 +3,10 @@ library(shiny)
 
 
 tile_choices <- c(
-  "OpenStreetMap", # "OpenStreetMap.BlackAndWhite", 
-  "OpenStreetMap.France",
-  "OpenStreetMap.HOT", "Stamen.TonerLite", "Stamen.Terrain", 
-  "Esri", "Esri.WorldTopoMap", "CartoDB", "HikeBike"
+  "OpenStreetMap", 
+  "OpenStreetMap.HOT", 
+  "Stamen.TonerLite", "Stamen.Terrain", 
+  "Esri", "Esri.WorldTopoMap", "CartoDB"
 )
 
 
@@ -69,14 +69,14 @@ marker_cols <- radioButtons(
       stringr::str_subset("Accent", negate = T),
     LETTERS[1:4]
   ),
-  selected = "Set1"
+  selected = "B"
 )
 
 
 ui <- fluidPage(
   waiter::useWaiter(),
   column(
-    3, 
+    4, 
     titlePanel("PSA Sitemap Generator"),
     fluidRow(
       column(
@@ -100,7 +100,9 @@ ui <- fluidPage(
         actionButton(
           "shift",
           "Shift NE points"
-        ), br(),
+        ), 
+        br(),
+        br(),
         radioButtons(
           "chart_type",
           label = NULL,
@@ -113,6 +115,12 @@ ui <- fluidPage(
           1200, min = 100, max = 2000, 
           step = 50, width = '100%'
         ),
+        sliderInput(
+          "ar", "Aspect ratio", 
+          min = 0.5, max = 1.5, 
+          value = 0.85, step = 0.05,
+          ticks = F
+        ),
         actionButton("reset", "Reset zoom", icon = icon("undo", class = "fa-xs")),
         downloadButton(
           "savebtn", 
@@ -121,6 +129,6 @@ ui <- fluidPage(
         )
       ),
     ),
-  column(9, shinycssloaders::withSpinner(uiOutput("map_r"), type = 6))
+  column(8, shinycssloaders::withSpinner(uiOutput("map_r"), type = 6))
 )
 
