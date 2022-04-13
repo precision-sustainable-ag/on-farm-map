@@ -76,7 +76,11 @@ server <- function(input, output, session) {
       lat = mean(lat, na.rm = T), 
       lon = mean(lon, na.rm = T),
       .groups = "drop"
-      ) 
+      ) %>% 
+    mutate(
+      lat = lat + runif(nrow(.), -1/8, 1/8),
+      lon = lon + runif(nrow(.), -1/8, 1/8)
+      )
 
 
   
@@ -110,7 +114,7 @@ server <- function(input, output, session) {
       year %in% input$yrs
     ) %>% 
     st_as_sf(
-      coords = c("lon", "lat"), #c("longitude", "latitude"), 
+      coords = c("lon", "lat"), 
       remove = F,
       crs = 4326
     ) %>% 
@@ -183,14 +187,16 @@ server <- function(input, output, session) {
 
     m <- leaflet(
       options = leafletOptions(
-        #attributionControl = F,
         zoomDelta = 0.125,
         zoomSnap = 0.125
         )
       ) %>% 
       addProviderTiles(
         input$prov,
-        options = providerTileOptions(opacity = input$background)
+        options = providerTileOptions(
+          opacity = input$background,
+          detectRetina = T
+          )
         ) %>% 
       addPolygons(
         data = outline_states,
@@ -345,7 +351,8 @@ server <- function(input, output, session) {
             input$map_bounds[["east"]], input$map_bounds[["north"]]
           ), 
         file = file, 
-        vwidth = input$sz, vheight = input$sz*input$ar
+        vwidth = input$sz, vheight = input$sz*input$ar,
+        zoom = 2
         )
 
     }
