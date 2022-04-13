@@ -195,7 +195,7 @@ server <- function(input, output, session) {
         input$prov,
         options = providerTileOptions(
           opacity = input$background,
-          detectRetina = T
+          detectRetina = T # retina flag
           )
         ) %>% 
       addPolygons(
@@ -306,9 +306,31 @@ server <- function(input, output, session) {
       )
   })
   
-  output$map <- renderLeaflet(
-    mobj_bounded()
-  )
+  output$map <- renderLeaflet({
+    epPlugin <- htmltools::htmlDependency(
+      "leaflet-easyPrint", "1.0.0",
+      src = "www",
+      script = "bundle.js"
+    )
+    
+    registerPlugin <- function(map, plugin) {
+      map$dependencies <- c(map$dependencies, list(plugin))
+      map
+    }
+    
+    mobj_bounded() %>% 
+      registerPlugin(epPlugin) %>% 
+      htmlwidgets::onRender(
+        "function(el, x) { 
+L.easyPrint({
+	title: 'Save map',
+	position: 'topleft',
+	sizeModes: ['Current'],
+	exportOnly: true
+}).addTo(this);
+        }"
+      )
+  })
 
   output$map_r <- renderUI({
     leafletOutput(
@@ -352,7 +374,7 @@ server <- function(input, output, session) {
           ), 
         file = file, 
         vwidth = input$sz, vheight = input$sz*input$ar,
-        zoom = 2
+        zoom = 2 # retina flag
         )
 
     }
