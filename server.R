@@ -76,11 +76,11 @@ server <- function(input, output, session) {
       lat = mean(lat, na.rm = T), 
       lon = mean(lon, na.rm = T),
       .groups = "drop"
-      ) %>% 
-    mutate(
-      lat = lat + runif(nrow(.), -1/8, 1/8),
-      lon = lon + runif(nrow(.), -1/8, 1/8)
-      )
+      ) #%>% 
+    # mutate(
+    #   lat = lat + runif(nrow(.), -1/8, 1/8),
+    #   lon = lon + runif(nrow(.), -1/8, 1/8)
+    #   )
 
 
   
@@ -187,15 +187,15 @@ server <- function(input, output, session) {
 
     m <- leaflet(
       options = leafletOptions(
-        zoomDelta = 0.125,
-        zoomSnap = 0.125
+        zoomDelta = 0.1,#25,
+        zoomSnap = 0.1, #0.125
         )
       ) %>% 
       addProviderTiles(
         input$prov,
         options = providerTileOptions(
           opacity = input$background,
-          detectRetina = T
+          detectRetina = T # retina flag
           )
         ) %>% 
       addPolygons(
@@ -344,15 +344,43 @@ server <- function(input, output, session) {
 
       on.exit( waiter::waiter_hide() )
       
+      message(jsonlite::toJSON(input$map_center), input$map_zoom)
+      message(jsonlite::toJSON(input$map_bounds))
+      b_to_box <- function(b) {
+        list(
+          c(b[["west"]], b[["south"]]),
+          c(b[["east"]], b[["south"]]),
+          c(b[["east"]], b[["north"]]),
+          c(b[["west"]], b[["north"]])
+        ) %>% 
+          purrr::map(st_point) %>% 
+          st_sfc() %>% st_union() %>% 
+          st_convex_hull()
+      }
+      
       mapshot(
-        mobj_bounded() %>% 
-          fitBounds(
-            input$map_bounds[["west"]], input$map_bounds[["south"]], 
-            input$map_bounds[["east"]], input$map_bounds[["north"]]
-          ), 
+        mobj() %>% 
+          addPolygons(data = b_to_box(input$map_bounds)) %>% 
+          # fitBounds(
+          #   input$map_bounds[["west"]], input$map_bounds[["south"]],
+          #   input$map_bounds[["east"]], input$map_bounds[["north"]],
+          #   options = list(
+          #     animate = F, duration = 0
+          #   )
+          # ) %>%
+          setView(
+            input$map_center$lng, input$map_center$lat,
+            input$map_zoom,
+            options = list(
+              animate = F, duration = 0
+            )
+          ),
         file = file, 
         vwidth = input$sz, vheight = input$sz*input$ar,
-        zoom = 2
+        delay = 1,
+        expand = 0,
+        zoom = 8 # retina flag
+        
         )
 
     }
