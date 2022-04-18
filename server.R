@@ -308,27 +308,72 @@ server <- function(input, output, session) {
   
   output$map <- renderLeaflet({
     epPlugin <- htmltools::htmlDependency(
-      "leaflet-easyPrint", "1.0.0",
+      "leaflet-easyPrint", "2.1.9",
       src = "www",
-      script = "bundle.js"
+      script = "easyPrint2.1.9-bundle.min.js"
     )
     
     registerPlugin <- function(map, plugin) {
       map$dependencies <- c(map$dependencies, list(plugin))
       map
     }
-    
     mobj_bounded() %>% 
       registerPlugin(epPlugin) %>% 
       htmlwidgets::onRender(
+        glue::glue(
         "function(el, x) { 
+            var css = document.createElement('style');
+    css.type = 'text/css';
+    css.innerHTML = `
+    .easyPrintHolder a {
+      background-size: 16px 16px;
+      cursor: pointer;
+    }
+    .easyPrintHolder .retSize {
+      background-image: url(data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMTZweCIgdmVyc2lvbj0iMS4xIiBoZWlnaHQ9IjE2cHgiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgNjQgNjQiPgogIDxnPgogICAgPGcgZmlsbD0iIzFEMUQxQiI+CiAgICAgIDxwYXRoIGQ9Ik0yNS4yNTUsMzUuOTA1TDQuMDE2LDU3LjE0NVY0Ni41OWMwLTEuMTA4LTAuODk3LTIuMDA4LTIuMDA4LTIuMDA4QzAuODk4LDQ0LjU4MiwwLDQ1LjQ4MSwwLDQ2LjU5djE1LjQwMiAgICBjMCwwLjI2MSwwLjA1MywwLjUyMSwwLjE1NSwwLjc2N2MwLjIwMywwLjQ5MiwwLjU5NCwwLjg4MiwxLjA4NiwxLjA4N0MxLjQ4Niw2My45NDcsMS43NDcsNjQsMi4wMDgsNjRoMTUuNDAzICAgIGMxLjEwOSwwLDIuMDA4LTAuODk4LDIuMDA4LTIuMDA4cy0wLjg5OC0yLjAwOC0yLjAwOC0yLjAwOEg2Ljg1NWwyMS4yMzgtMjEuMjRjMC43ODQtMC43ODQsMC43ODQtMi4wNTUsMC0yLjgzOSAgICBTMjYuMDM5LDM1LjEyMSwyNS4yNTUsMzUuOTA1eiIgZmlsbD0iIzAwMDAwMCIvPgogICAgICA8cGF0aCBkPSJtNjMuODQ1LDEuMjQxYy0wLjIwMy0wLjQ5MS0wLjU5NC0wLjg4Mi0xLjA4Ni0xLjA4Ny0wLjI0NS0wLjEwMS0wLjUwNi0wLjE1NC0wLjc2Ny0wLjE1NGgtMTUuNDAzYy0xLjEwOSwwLTIuMDA4LDAuODk4LTIuMDA4LDIuMDA4czAuODk4LDIuMDA4IDIuMDA4LDIuMDA4aDEwLjU1NmwtMjEuMjM4LDIxLjI0Yy0wLjc4NCwwLjc4NC0wLjc4NCwyLjA1NSAwLDIuODM5IDAuMzkyLDAuMzkyIDAuOTA2LDAuNTg5IDEuNDIsMC41ODlzMS4wMjctMC4xOTcgMS40MTktMC41ODlsMjEuMjM4LTIxLjI0djEwLjU1NWMwLDEuMTA4IDAuODk3LDIuMDA4IDIuMDA4LDIuMDA4IDEuMTA5LDAgMi4wMDgtMC44OTkgMi4wMDgtMi4wMDh2LTE1LjQwMmMwLTAuMjYxLTAuMDUzLTAuNTIyLTAuMTU1LTAuNzY3eiIgZmlsbD0iIzAwMDAwMCIvPgogICAgPC9nPgogIDwvZz4KPC9zdmc+Cg==)
+    }
+    .easyPrintHolder{
+      margin-top:-31px;
+      margin-bottom: -5px;
+      margin-left: 30px;
+      padding-left: 0px;
+      display: none;
+    }
+    .easyPrintSizeMode {
+      display: inline-block;
+    }
+    .easyPrintHolder .easyPrintSizeMode a {
+      border-radius: 0px;
+    }
+    .easyPrintHolder .easyPrintSizeMode:last-child a{
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+      margin-left: -1px;
+    }
+    .easyPrintPortrait:hover, .easyPrintLandscape:hover{
+      background-color: #757570;
+      cursor: pointer;
+    }
+    
+    `
+        document.body.appendChild(css);
+var retSize = {
+	width: ${input$sz}$*8,
+	height: ${input$sz*input$ar}$*8,
+	className: 'retSize',
+	tooltip: 'Active size'
+};
 L.easyPrint({
 	title: 'Save map',
 	position: 'topleft',
-	sizeModes: ['Current'],
-	exportOnly: true
+	sizeModes: ['retSize'],
+	exportOnly: true,
+	hideControlContainer: false,
+	hideClasses: ['leaflet-top leaflet-left']
 }).addTo(this);
-        }"
+        }",
+    .open = "${", .close = "}$"
+    )
       )
   })
 
