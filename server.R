@@ -358,6 +358,7 @@ server <- function(input, output, session) {
           st_convex_hull()
       }
       
+      
       mapshot(
         mobj() %>% 
           addPolygons(data = b_to_box(input$map_bounds)) %>% 
@@ -379,8 +380,9 @@ server <- function(input, output, session) {
         vwidth = input$sz, vheight = input$sz*input$ar,
         delay = 1,
         expand = 0,
-        zoom = 8 # retina flag
-        
+        zoom = 8, # retina flag
+        useragent = 'Mozilla/5.0 (compatible; MSIE 10.6; Windows NT 6.1; Trident/5.0; InfoPath.2; SLCC1; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; .NET CLR 2.0.50727) 3gpp-gba UNTRUSTED/1.0'
+        # https://github.com/r-spatial/mapview/issues/274
         )
 
     }
