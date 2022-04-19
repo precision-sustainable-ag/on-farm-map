@@ -344,24 +344,24 @@ server <- function(input, output, session) {
 
       on.exit( waiter::waiter_hide() )
       
-      message(jsonlite::toJSON(input$map_center), input$map_zoom)
-      message(jsonlite::toJSON(input$map_bounds))
-      b_to_box <- function(b) {
-        list(
-          c(b[["west"]], b[["south"]]),
-          c(b[["east"]], b[["south"]]),
-          c(b[["east"]], b[["north"]]),
-          c(b[["west"]], b[["north"]])
-        ) %>% 
-          purrr::map(st_point) %>% 
-          st_sfc() %>% st_union() %>% 
-          st_convex_hull()
-      }
+      # message(jsonlite::toJSON(input$map_center), input$map_zoom)
+      # message(jsonlite::toJSON(input$map_bounds))
+      # b_to_box <- function(b) {
+      #   list(
+      #     c(b[["west"]], b[["south"]]),
+      #     c(b[["east"]], b[["south"]]),
+      #     c(b[["east"]], b[["north"]]),
+      #     c(b[["west"]], b[["north"]])
+      #   ) %>% 
+      #     purrr::map(st_point) %>% 
+      #     st_sfc() %>% st_union() %>% 
+      #     st_convex_hull()
+      # }
       
       
       mapshot(
         mobj() %>% 
-          addPolygons(data = b_to_box(input$map_bounds)) %>% 
+          # addPolygons(data = b_to_box(input$map_bounds)) %>% 
           # fitBounds(
           #   input$map_bounds[["west"]], input$map_bounds[["south"]],
           #   input$map_bounds[["east"]], input$map_bounds[["north"]],
@@ -380,7 +380,7 @@ server <- function(input, output, session) {
         vwidth = input$sz, vheight = input$sz*input$ar,
         delay = 1,
         expand = 0,
-        zoom = 8, # retina flag
+        zoom = 4, # retina flag
         useragent = 'Mozilla/5.0 (compatible; MSIE 10.6; Windows NT 6.1; Trident/5.0; InfoPath.2; SLCC1; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; .NET CLR 2.0.50727) 3gpp-gba UNTRUSTED/1.0'
         # https://github.com/r-spatial/mapview/issues/274
         )
